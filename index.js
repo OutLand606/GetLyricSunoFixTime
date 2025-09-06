@@ -1,19 +1,29 @@
 #!/usr/bin/env node
 'use strict';
 
-import fs from 'fs';
-import path from 'path';
-import axios from 'axios';
-import readline from 'readline';
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const readline = require('readline');
 
-const TOKEN_FILE = path.join(process.cwd(), 'token.txt');
+// ---------------- Config ----------------
 
-// Tạo file token.txt rỗng nếu chưa tồn tại
+// Lấy thư mục chứa binary (khi build với pkg) hoặc script (khi chạy bằng node)
+const BASE_DIR = path.dirname(process.execPath);
+const OUTPUT_DIR = path.join(BASE_DIR, 'output');
+const TOKEN_FILE = path.join(OUTPUT_DIR, 'token.txt');
+
+// Đảm bảo thư mục output tồn tại
+if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+    console.log(`📁 Created output folder: ${OUTPUT_DIR}`);
+}
+
+// Tạo file token.txt rỗng nếu chưa có
 if (!fs.existsSync(TOKEN_FILE)) {
     fs.writeFileSync(TOKEN_FILE, '');
     console.log('📄 Created empty token.txt');
 }
-
 
 // ---------------- Helper Functions ----------------
 
@@ -77,20 +87,12 @@ async function fetchAlignedWords(songId, token) {
 // Save file with timestamp
 function saveFile(content, fileType, songId) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const outputDir = path.join(process.cwd(), 'output');
-
-    // Tạo thư mục nếu chưa có
-    if (!fs.existsSync(outputDir)) {
-        fs.mkdirSync(outputDir, { recursive: true });
-    }
-
     const fileName = `aligned_words_${songId}_${timestamp}.${fileType}`;
-    const filePath = path.join(outputDir, fileName);
+    const filePath = path.join(OUTPUT_DIR, fileName);
 
     fs.writeFileSync(filePath, content);
     console.log(`✅ Saved: ${filePath}`);
 }
-
 
 // Readline wrapper
 function ask(question) {

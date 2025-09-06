@@ -14,8 +14,8 @@ output/log.txt
 
 # Ignore output folder (lyric + token)
 output/
+build/
 
 # Ignore system files
 .DS_Store
 Thumbs.db
-token.txt
