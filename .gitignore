@@ -1,0 +1,21 @@
+
+gitignore# Ignore node_modules
+node_modules/
+
+# Ignore build artifacts (nếu dùng pkg build)
+*.exe
+*.app
+*.pkg
+
+# Ignore logs
+*.log
+logs/
+output/log.txt
+
+# Ignore output folder (lyric + token)
+output/
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+token.txt
