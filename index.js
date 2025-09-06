@@ -6,20 +6,17 @@ const path = require('path');
 const axios = require('axios');
 const readline = require('readline');
 
-// ---------------- Config ----------------
-
-// Lấy thư mục chứa binary (khi build với pkg) hoặc script (khi chạy bằng node)
-const BASE_DIR = path.dirname(process.execPath);
+// --- Setup base dir ---
+const BASE_DIR = (process.pkg ? path.dirname(process.execPath) : __dirname);
 const OUTPUT_DIR = path.join(BASE_DIR, 'output');
-const TOKEN_FILE = path.join(OUTPUT_DIR, 'token.txt');
 
-// Đảm bảo thư mục output tồn tại
+// Tạo thư mục output nếu chưa có
 if (!fs.existsSync(OUTPUT_DIR)) {
     fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-    console.log(`📁 Created output folder: ${OUTPUT_DIR}`);
 }
 
-// Tạo file token.txt rỗng nếu chưa có
+// Token file trong thư mục output
+const TOKEN_FILE = path.join(OUTPUT_DIR, 'token.txt');
 if (!fs.existsSync(TOKEN_FILE)) {
     fs.writeFileSync(TOKEN_FILE, '');
     console.log('📄 Created empty token.txt');
@@ -150,33 +147,44 @@ async function loadToken() {
 
 // ---------------- Main Script ----------------
 async function main() {
-    const songIdsInput = await ask('Enter song IDs (comma-separated): ');
-    const songIds = songIdsInput.split(',').map(s => s.trim()).filter(Boolean);
-
-    let fileType = await ask('Enter file type (lrc or srt, default lrc): ');
-    fileType = (fileType.toLowerCase() === 'srt') ? 'srt' : 'lrc';
-
     const token = await loadToken();
 
-    for (const songId of songIds) {
-        console.log(`\nFetching aligned words for ${songId}...`);
-        try {
-            const words = await fetchAlignedWords(songId, token);
-            if (!words) {
-                console.log(`⚠️ No words for ${songId}`);
-                continue;
-            }
-            const content = (fileType === 'srt') ? convertToSRT(words) : convertToLRC(words);
-            saveFile(content, fileType, songId);
-        } catch (err) {
-            if (err.message === 'TOKEN_INVALID') {
-                console.log('❌ Your token is invalid. Please run the program again to refresh.');
-                break;
+    while (true) {
+        const songIdsInput = await ask('\nEnter song IDs (comma-separated, or "exit" to quit): ');
+        if (songIdsInput.trim().toLowerCase() === 'exit') {
+            console.log('👋 Exiting program...');
+            process.exit(0);
+        }
+
+        const songIds = songIdsInput.split(',').map(s => s.trim()).filter(Boolean);
+        if (songIds.length === 0) {
+            console.log('⚠️ No IDs entered. Try again.');
+            continue;
+        }
+
+        let fileType = await ask('Enter file type (lrc or srt, default lrc): ');
+        fileType = (fileType.toLowerCase() === 'srt') ? 'srt' : 'lrc';
+
+        for (const songId of songIds) {
+            console.log(`\nFetching aligned words for ${songId}...`);
+            try {
+                const words = await fetchAlignedWords(songId, token);
+                if (!words) {
+                    console.log(`⚠️ No words for ${songId}`);
+                    continue;
+                }
+                const content = (fileType === 'srt') ? convertToSRT(words) : convertToLRC(words);
+                saveFile(content, fileType, songId);
+            } catch (err) {
+                if (err.message === 'TOKEN_INVALID') {
+                    console.log('❌ Your token is invalid. Please restart the program to refresh.');
+                    process.exit(1);
+                }
             }
         }
-    }
 
-    console.log('\n✅ All done!');
+        console.log('\n✅ Done with this batch!');
+    }
 }
 
 main();
